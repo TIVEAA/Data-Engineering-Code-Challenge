@@ -7,15 +7,27 @@
         "columns": {
             "transaction_id": {
                 "type": "string",
-                "description": "Unique identifier for the transaction"
+                "description": "Unique identifier for the transaction",
+                "constraints": {
+                    "not_null": true,
+                    "not_empty": true
+                }
             },
             "store_id": {
                 "type": "string",
-                "description": "ID of the store where the transaction occurred"   
+                "description": "ID of the store where the transaction occurred",
+                "constraints": {
+                    "not_null": true,
+                    "not_empty": true
+                }
             },
             "product_id": {
                 "type": "string",
-                "description": "ID of the product sold"  
+                "description": "ID of the product sold",
+                "constraints": {
+                    "not_null": true,
+                    "not_empty": true
+                }
             },
             "quantity": {
                 "type": "integer",
@@ -46,7 +58,11 @@
         "columns": {
             "product_id": {
                 "type": "string",
-                "description": "Unique identifier for the product"
+                "description": "Unique identifier for the product",
+                "constraints": {
+                    "not_null": true,
+                    "not_empty": true
+                }
             },
             "product_name": {
                 "type": "string",
@@ -66,7 +82,11 @@
         "columns": {
             "store_id": {
                 "type": "string",
-                "description": "Unique identifier for the store"  
+                "description": "Unique identifier for the store",
+                "constraints":{
+                    "not_null": true,
+                    "not_empty": true
+                } 
             },
             "store_name": {
                 "type": "string",
