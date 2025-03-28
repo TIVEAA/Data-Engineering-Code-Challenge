@@ -38,8 +38,8 @@
             },
             "transaction_date": {
                 "type": "date",
-                "description": "Date of the transaction",
-                "format": "YYYY-MM-DD"
+                "description": "date of the transaction",
+                "format": "yyyy-MM-dd"
             },
             "price": {
                 "type": "float",
