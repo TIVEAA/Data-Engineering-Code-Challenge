@@ -18,7 +18,7 @@ Functions:
 from utils import load_config, get_logger
 from pyspark.sql import SparkSession, DataFrame
 from pyspark.sql.types import StringType
-from pyspark.sql.functions import col, when, count, length, to_date
+from pyspark.sql.functions import col, when, count, length, to_date, coalesce, date_format
 from dateutil import parser
 
 spark = SparkSession.builder.appName("DataPreparation").getOrCreate()
@@ -107,21 +107,6 @@ def handle_duplicates(df: DataFrame, config: dict) -> DataFrame:
     logger.info(f"Dropped {duplicates_dropped} duplicates rows from table {config['table_name']}")
     return df
 
-def detect_date_format(date_str: str) -> str:
-    """
-    Detects and parses the date string into a standard format.
-
-    Args:
-        date_str (str): The date string to parse.
-
-    Returns:
-        str: The parsed date in ISO format or None if parsing fails.
-    """
-    try:
-        return parser.parse(date_str).isoformat()
-    except ValueError:
-        return None
-
 def enforce_constraints(df: DataFrame, column: str, constraints: dict) -> DataFrame:
     """
     Enforces constraints for a specific column in the DataFrame.
@@ -145,6 +130,16 @@ def enforce_constraints(df: DataFrame, column: str, constraints: dict) -> DataFr
         df = df.filter(col(column) >= constraints['min'])
     return df
 
+# List of known date formats
+KNOWN_DATE_FORMATS = [
+    'MMMM dd, yyyy',
+    'MM/dd/yyyy',
+    'yyyy/MM/dd',
+    'dd/MM/yyyy',
+    'yyyy-MM-dd',
+    'dd-MM-yyyy'
+]
+
 def enforce_data_types(df: DataFrame, config: dict) -> DataFrame:
     """
     Enforces data types and constraints for each column in the DataFrame.
@@ -162,9 +157,8 @@ def enforce_data_types(df: DataFrame, config: dict) -> DataFrame:
         logger.info(f"Enforcing data type for column {column}: {data_type}")
         if data_type == 'date':
             logger.info(f"Detecting and converting date formats for column {column}")
-            df = df.withColumn(column, detect_date_format_udf(col(column)))
-            date_format = str(metadata['format'])
-            df = df.withColumn(column, to_date(col(column), date_format))
+            date_columns = [to_date(col(column), fmt) for fmt in KNOWN_DATE_FORMATS]
+            df = df.withColumn(column, coalesce(*date_columns))
         else:
             df = df.withColumn(column, col(column).cast(data_type))
 
@@ -172,15 +166,19 @@ def enforce_data_types(df: DataFrame, config: dict) -> DataFrame:
             df = enforce_constraints(df, column, metadata['constraints'])
     return df
 
-sales_df = load_data(spark, config['sales'])
-# products_df = load_data(spark, config['products'])
-# stores_df = load_data(spark, config['stores'])
-
+# sales_df = load_data(spark, config['sales'])
 # sales_df = handle_duplicates(sales_df, config['sales'])
-# detect_date_format_udf = udf(detect_date_format, StringType())
+# sales_df.printSchema()
+# sales_df = sales_df.withColumn("transaction_date_new", to_date_("transaction_date"))
+# sales_df.show()
+# sales_df.printSchema()
 # sales_df = enforce_data_types(sales_df, config['sales'])
 # sales_df.printSchema()
 # sales_df.show()
-# print(sales_df.count())
+
+# products_df = load_data(spark, config['products'])
+# products_df = handle_duplicates(products_df, config['products'])
+# products_df = enforce_data_types(products_df, config['products'])
+# products_df.show()
 
 spark.stop()

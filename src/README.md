@@ -1,7 +1,7 @@
 # Source Code
 
 ## Overview
-This folder contains the source code for the data engineering challenge. Each script is responsible for a specific part of the data processing pipeline.
+This folder contains the source code for the challenge. Each script is responsible for a specific part of the data processing pipeline.
 
 ## Scripts
 - `data_preparation.py`: Prepares the data by loading, validating, and cleaning the datasets.
