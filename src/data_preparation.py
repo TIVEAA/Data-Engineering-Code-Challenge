@@ -1,7 +1,24 @@
+"""
+data_preparation.py
+
+This module is responsible for preparing the data for the challenge.
+It includes functions to load data, check for missing values, check for format inconsistencies,
+handle duplicates, and enforce data types and constraints.
+
+Functions:
+- load_data: Load data from the specified path in the configuration file.
+- check_missing_values: Check for missing values in the DataFrame.
+- check_format_inconsistencies: Check for inconsistencies in the data format.
+- handle_duplicates: Handle duplicates in the DataFrame by dropping rows with duplicate primary keys.
+- detect_date_format: Detect and parse the date string into a standard format.
+- enforce_constraints: Enforce constraints for a specific column in the DataFrame.
+- enforce_data_types: Enforce data types and constraints for each column in the DataFrame.
+"""
+
 from utils import load_config, get_logger
 from pyspark.sql import SparkSession, DataFrame
 from pyspark.sql.types import StringType
-from pyspark.sql.functions import col, when, count, length, to_date, udf, to_timestamp
+from pyspark.sql.functions import col, when, count, length, to_date
 from dateutil import parser
 
 spark = SparkSession.builder.appName("DataPreparation").getOrCreate()
@@ -155,7 +172,7 @@ def enforce_data_types(df: DataFrame, config: dict) -> DataFrame:
             df = enforce_constraints(df, column, metadata['constraints'])
     return df
 
-# sales_df = load_data(spark, config['sales'])
+sales_df = load_data(spark, config['sales'])
 # products_df = load_data(spark, config['products'])
 # stores_df = load_data(spark, config['stores'])
 
