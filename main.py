@@ -46,7 +46,7 @@ def main():
         enriched_df = enrich_data(sales_df, products_df, stores_df)
 
         # Add price category
-        enriched_df = add_price_category(enriched_df)
+        enriched_df_with_price_categorized = add_price_category(enriched_df)
 
         # Save enriched data
         save_enriched_data(enriched_df, output_config["enriched_data"]["path"])
