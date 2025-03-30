@@ -22,9 +22,12 @@ def save_enriched_data(enriched_df: DataFrame, output_path: str) -> None:
         enriched_df (DataFrame): The enriched DataFrame.
         output_path (str): The output path for the Parquet file.
     """
-    logger.info(f"Saving enriched dataset to {output_path} in Parquet format, partitioned by category and transaction_date")
-    enriched_df.write.mode("overwrite").partitionBy("category", "transaction_date").parquet(output_path)
-    return None
+    try:
+        logger.info(f"Saving enriched dataset to {output_path} in Parquet format, partitioned by category and transaction_date")
+        enriched_df.write.mode("overwrite").partitionBy("category", "transaction_date").parquet(output_path)
+    except Exception as e:
+        logger.error(f"Error saving enriched dataset to {output_path}: {e}")
+        raise
 
 def save_revenue_insights(revenue_df: DataFrame, output_path: str) -> None:
     """
@@ -34,8 +37,10 @@ def save_revenue_insights(revenue_df: DataFrame, output_path: str) -> None:
         revenue_df (DataFrame): The revenue DataFrame.
         output_path (str): The output path for the CSV file.
     """
-    logger.info(f"Saving store_id-level revenue insights to {output_path} in CSV format")
-    # revenue_df.write.mode("overwrite").csv(output_path, header=True)
-    revenue_df.write.format("csv").mode("overwrite").option("header", True).save(output_path)
-    return None
+    try:
+        logger.info(f"Saving store_id-level revenue insights to {output_path} in CSV format")
+        revenue_df.write.format("csv").mode("overwrite").option("header", True).save(output_path)
+    except Exception as e:
+        logger.error(f"Error saving store_id-level revenue insights to {output_path}: {e}")
+        raise
 

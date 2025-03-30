@@ -15,16 +15,10 @@ Functions:
 
 from pyspark.sql import SparkSession, DataFrame
 from src.utils import load_config, get_logger
-# from src.data_preparation import load_data, handle_duplicates, enforce_data_types
 from pyspark.sql.functions import col, sum, year, month, round, udf
 from pyspark.sql.types import StringType
 
-# Initialize Spark session and logger
-# spark = SparkSession.builder.appName("DataTransformation").getOrCreate()
 logger = get_logger(__name__)
-
-# # Load configuration
-# config = load_config("config/tables_config.json")
     
 def calculate_total_revenue(sales_df: DataFrame, products_df: DataFrame) -> DataFrame:
     """
@@ -32,18 +26,23 @@ def calculate_total_revenue(sales_df: DataFrame, products_df: DataFrame) -> Data
 
     Args:
         sales_df (DataFrame): The sales DataFrame.
+        products_df (DataFrame): The products DataFrame.
 
     Returns:
         DataFrame: DataFrame with store_id, category, and total_revenue.
     """
-    logger.info("Calculating total revenue for each store and product category")
+    try:
+        logger.info("Calculating total revenue for each store and product category")
 
-    # Join sales with products
-    sales_with_category_df = sales_df.join(products_df, "product_id")
+        sales_with_category_df = sales_df.join(products_df, "product_id")
 
-    # 
-    total_revenue_df = sales_with_category_df.groupBy("store_id", "category").agg(round(sum(col("price") * col("quantity")), 2).alias("total_revenue")).orderBy("total_revenue", ascending = False)
-    return total_revenue_df
+        total_revenue_df = sales_with_category_df.groupBy("store_id", "category").agg(
+            round(sum(col("price") * col("quantity")), 2).alias("total_revenue")
+        ).orderBy("total_revenue", ascending=False)
+        return total_revenue_df
+    except Exception as e:
+        logger.error(f"Error calculating total revenue: {e}")
+        raise
     
 def calculate_monthly_sales(sales_df: DataFrame, products_df: DataFrame) -> DataFrame:
     """
@@ -56,11 +55,19 @@ def calculate_monthly_sales(sales_df: DataFrame, products_df: DataFrame) -> Data
     Returns:
         DataFrame: DataFrame with year, month, category, and total_quantity_sold.
     """
-    logger.info("Calculating total quantity sold for each product category, grouped by month")
+    try:
+        logger.info("Calculating total quantity sold for each product category, grouped by month")
 
-    sales_with_category_df = sales_df.join(products_df, "product_id")
-    monthly_sales_df = sales_with_category_df.groupBy(year("transaction_date").alias("year"), month("transaction_date").alias("month"), "category").agg(sum("quantity").alias("total_quantity_sold")).orderBy("total_quantity_sold", ascending = False )
-    return monthly_sales_df
+        sales_with_category_df = sales_df.join(products_df, "product_id")
+        monthly_sales_df = sales_with_category_df.groupBy(
+            year("transaction_date").alias("year"),
+            month("transaction_date").alias("month"),
+            "category"
+        ).agg(sum("quantity").alias("total_quantity_sold")).orderBy("total_quantity_sold", ascending=False)
+        return monthly_sales_df
+    except Exception as e:
+        logger.error(f"Error calculating monthly sales: {e}")
+        raise
 
 def enrich_data(sales_df: DataFrame, products_df: DataFrame, stores_df: DataFrame) -> DataFrame:
     """
@@ -74,22 +81,26 @@ def enrich_data(sales_df: DataFrame, products_df: DataFrame, stores_df: DataFram
     Returns:
         DataFrame: Enriched DataFrame with transaction_id, store_name, location, product_name, category, quantity, transaction_date, and price.
     """
-    logger.info("Enriching data by combining sales, products, and stores datasets")
+    try:
+        logger.info("Enriching data by combining sales, products, and stores datasets")
 
-    enriched_df = sales_df.join(products_df, "product_id").join(stores_df, "store_id")
+        enriched_df = sales_df.join(products_df, "product_id").join(stores_df, "store_id")
 
-    enriched_df = enriched_df.select(
-        "transaction_id",
-        "store_name",
-        "location",
-        "product_name",
-        "category",
-        "quantity",
-        "transaction_date",
-        "price"
-    ).orderBy("transaction_date", ascending = False)
+        enriched_df = enriched_df.select(
+            "transaction_id",
+            "store_name",
+            "location",
+            "product_name",
+            "category",
+            "quantity",
+            "transaction_date",
+            "price"
+        ).orderBy("transaction_date", ascending=False)
 
-    return enriched_df
+        return enriched_df
+    except Exception as e:
+        logger.error(f"Error enriching data: {e}")
+        raise
 
 def categorized_price(price: float) -> str:
     """
@@ -101,12 +112,16 @@ def categorized_price(price: float) -> str:
     Returns:
         str: The price category (Low, Medium, High).
     """
-    if price < 20:
-        return "Low"
-    elif 20 <= price <= 100:
-        return "Medium"
-    else:
-        return "High"
+    try:
+        if price < 20:
+            return "Low"
+        elif 20 <= price <= 100:
+            return "Medium"
+        else:
+            return "High"
+    except Exception as e:
+        logger.error(f"Error categorizing price: {e}")
+        raise
 
 categorized_price_udf = udf(categorized_price, StringType())
 
@@ -120,7 +135,11 @@ def add_price_category(enriched_df: DataFrame) -> DataFrame:
     Returns:
         DataFrame: Enriched DataFrame with an additional price_category column.
     """
-    logger.info("Adding price category to the enriched dataset")
-    enriched_df = enriched_df.withColumn("price_category", categorized_price_udf(col("price")))
-    return enriched_df
+    try:
+        logger.info("Adding price category to the enriched dataset")
+        enriched_df = enriched_df.withColumn("price_category", categorized_price_udf(col("price")))
+        return enriched_df
+    except Exception as e:
+        logger.error(f"Error adding price category: {e}")
+        raise
     
