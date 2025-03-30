@@ -35,6 +35,7 @@ def save_revenue_insights(revenue_df: DataFrame, output_path: str) -> None:
         output_path (str): The output path for the CSV file.
     """
     logger.info(f"Saving store_id-level revenue insights to {output_path} in CSV format")
-    revenue_df.write.mode("overwrite").csv(output_path, header=True)
+    # revenue_df.write.mode("overwrite").csv(output_path, header=True)
+    revenue_df.write.format("csv").mode("overwrite").option("header", True).save(output_path)
     return None
 

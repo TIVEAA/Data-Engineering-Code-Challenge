@@ -58,7 +58,7 @@ def main():
     save_enriched_data(enriched_df, "output/enriched_data")
 
     # Step 8: Save revenue insights
-    save_revenue_insights(total_revenue_df, "output/revenue_insights.csv")
+    save_revenue_insights(total_revenue_df, "output/revenue_insights")
 
     logger.info("Data processing pipeline completed successfully")
 
