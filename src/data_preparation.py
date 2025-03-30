@@ -17,6 +17,7 @@ Functions:
 from src.utils import get_logger
 from pyspark.sql import SparkSession, DataFrame
 from pyspark.sql.functions import col, when, count, length, to_date, coalesce
+from pyspark.sql.types import IntegerType
 
 logger = get_logger(__name__)
 
@@ -177,6 +178,7 @@ def enforce_data_types(df: DataFrame, config: dict) -> DataFrame:
                 logger.info(f"Detecting and converting date formats for column {column}")
                 date_columns = [to_date(col(column), fmt) for fmt in KNOWN_DATE_FORMATS]
                 df = df.withColumn(column, coalesce(*date_columns))
+                logger.debug(f"Schema after enforcing data type for column {column}: {df.schema}")
             else:
                 df = df.withColumn(column, col(column).cast(data_type))
 
