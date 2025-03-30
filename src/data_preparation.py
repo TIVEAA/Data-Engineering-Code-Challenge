@@ -10,16 +10,14 @@ Functions:
 - check_missing_values: Check for missing values in the DataFrame.
 - check_format_inconsistencies: Check for inconsistencies in the data format.
 - handle_duplicates: Handle duplicates in the DataFrame by dropping rows with duplicate primary keys.
-- detect_date_format: Detect and parse the date string into a standard format.
 - enforce_constraints: Enforce constraints for a specific column in the DataFrame.
 - enforce_data_types: Enforce data types and constraints for each column in the DataFrame.
 """
 
-from utils import load_config, get_logger
+from src.utils import load_config, get_logger
 from pyspark.sql import SparkSession, DataFrame
 from pyspark.sql.types import StringType
-from pyspark.sql.functions import col, when, count, length, to_date, coalesce, date_format
-from dateutil import parser
+from pyspark.sql.functions import col, when, count, length, to_date, coalesce
 
 spark = SparkSession.builder.appName("DataPreparation").getOrCreate()
 spark.conf.set("spark.sql.legacy.timeParserPolicy", "LEGACY")
@@ -165,20 +163,5 @@ def enforce_data_types(df: DataFrame, config: dict) -> DataFrame:
         if 'constraints' in metadata:
             df = enforce_constraints(df, column, metadata['constraints'])
     return df
-
-# sales_df = load_data(spark, config['sales'])
-# sales_df = handle_duplicates(sales_df, config['sales'])
-# sales_df.printSchema()
-# sales_df = sales_df.withColumn("transaction_date_new", to_date_("transaction_date"))
-# sales_df.show()
-# sales_df.printSchema()
-# sales_df = enforce_data_types(sales_df, config['sales'])
-# sales_df.printSchema()
-# sales_df.show()
-
-# products_df = load_data(spark, config['products'])
-# products_df = handle_duplicates(products_df, config['products'])
-# products_df = enforce_data_types(products_df, config['products'])
-# products_df.show()
 
 spark.stop()

@@ -1,16 +1,30 @@
+"""
+data_transformation.py
+
+This module is responsible for transforming the data for the challenge.
+It includes functions to calculate total revenue, calculate monthly sales insights,
+enrich data by combining multiple datasets, and categorize products based on price ranges.
+
+Functions:
+- calculate_total_revenue: Calculate the total revenue for each store and each product category.
+- calculate_monthly_sales: Calculate the total quantity sold for each product category, grouped by month.
+- enrich_data: Combine the sales, products, and stores datasets into a single enriched dataset.
+- categorized_price: Categorize products based on price ranges.
+- add_price_category: Add a price category column to the enriched dataset.
+"""
 
 from pyspark.sql import SparkSession, DataFrame
-from utils import load_config, get_logger
-from data_preparation import load_data, handle_duplicates, enforce_data_types
-from pyspark.sql.functions import col, sum
+from src.utils import load_config, get_logger
+# from src.data_preparation import load_data, handle_duplicates, enforce_data_types
+from pyspark.sql.functions import col, sum, year, month, round, udf
 from pyspark.sql.types import StringType
 
 # Initialize Spark session and logger
-spark = SparkSession.builder.appName("DataTransformation").getOrCreate()
+# spark = SparkSession.builder.appName("DataTransformation").getOrCreate()
 logger = get_logger(__name__)
 
-# Load configuration
-config = load_config("config/tables_config.json")
+# # Load configuration
+# config = load_config("config/tables_config.json")
     
 def calculate_total_revenue(sales_df: DataFrame, products_df: DataFrame) -> DataFrame:
     """
@@ -23,21 +37,90 @@ def calculate_total_revenue(sales_df: DataFrame, products_df: DataFrame) -> Data
         DataFrame: DataFrame with store_id, category, and total_revenue.
     """
     logger.info("Calculating total revenue for each store and product category")
+
+    # Join sales with products
     sales_with_category_df = sales_df.join(products_df, "product_id")
-    total_revenue_df = sales_with_category_df.groupBy("store_id", "category").agg(sum(col("price") * col("quantity")).alias("total_revenue"))  
+
+    # 
+    total_revenue_df = sales_with_category_df.groupBy("store_id", "category").agg(round(sum(col("price") * col("quantity")), 2).alias("total_revenue")).orderBy("total_revenue", ascending = False)
     return total_revenue_df
+    
+def calculate_monthly_sales(sales_df: DataFrame, products_df: DataFrame) -> DataFrame:
+    """
+    Calculate the total quantity sold for each product category, grouped by month.
 
+    Args:
+        sales_df (DataFrame): The sales DataFrame.
+        products_df (DataFrame): The products DataFrame.
 
-sales_df = load_data(spark, config['sales'])
-sales_df = handle_duplicates(sales_df, config['sales'])
-sales_df = enforce_data_types(sales_df, config['sales'])
+    Returns:
+        DataFrame: DataFrame with year, month, category, and total_quantity_sold.
+    """
+    logger.info("Calculating total quantity sold for each product category, grouped by month")
 
-products_df = load_data(spark, config['products'])
-products_df = handle_duplicates(products_df, config['products'])
-products_df = enforce_data_types(products_df, config['products'])
+    sales_with_category_df = sales_df.join(products_df, "product_id")
+    monthly_sales_df = sales_with_category_df.groupBy(year("transaction_date").alias("year"), month("transaction_date").alias("month"), "category").agg(sum("quantity").alias("total_quantity_sold")).orderBy("total_quantity_sold", ascending = False )
+    return monthly_sales_df
 
-total_revenue = calculate_total_revenue(sales_df, products_df)
-total_revenue.show()
+def enrich_data(sales_df: DataFrame, products_df: DataFrame, stores_df: DataFrame) -> DataFrame:
+    """
+    Combine the sales, products, and stores datasets into a single enriched dataset.
 
+    Args:
+        sales_df (DataFrame): The sales DataFrame.
+        products_df (DataFrame): The products DataFrame.
+        stores_df (DataFrame): The stores DataFrame.
 
+    Returns:
+        DataFrame: Enriched DataFrame with transaction_id, store_name, location, product_name, category, quantity, transaction_date, and price.
+    """
+    logger.info("Enriching data by combining sales, products, and stores datasets")
 
+    enriched_df = sales_df.join(products_df, "product_id").join(stores_df, "store_id")
+
+    enriched_df = enriched_df.select(
+        "transaction_id",
+        "store_name",
+        "location",
+        "product_name",
+        "category",
+        "quantity",
+        "transaction_date",
+        "price"
+    ).orderBy("transaction_date", ascending = False)
+
+    return enriched_df
+
+def categorized_price(price: float) -> str:
+    """
+    Categorize products based on price ranges.
+
+    Args:
+        price (float): The price of the product.
+
+    Returns:
+        str: The price category (Low, Medium, High).
+    """
+    if price < 20:
+        return "Low"
+    elif 20 <= price <= 100:
+        return "Medium"
+    else:
+        return "High"
+
+categorized_price_udf = udf(categorized_price, StringType())
+
+def add_price_category(enriched_df: DataFrame) -> DataFrame:
+    """
+    Add a price category column to the enriched dataset.
+
+    Args:
+        enriched_df (DataFrame): The enriched DataFrame.
+
+    Returns:
+        DataFrame: Enriched DataFrame with an additional price_category column.
+    """
+    logger.info("Adding price category to the enriched dataset")
+    enriched_df = enriched_df.withColumn("price_category", categorized_price_udf(col("price")))
+    return enriched_df
+    
