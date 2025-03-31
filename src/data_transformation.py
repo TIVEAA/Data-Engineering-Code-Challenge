@@ -6,20 +6,22 @@ It includes functions to calculate total revenue, calculate monthly sales insigh
 enrich data by combining multiple datasets, and categorize products based on price ranges.
 
 Functions:
-- calculate_total_revenue: Calculate the total revenue for each store and each product category.
-- calculate_monthly_sales: Calculate the total quantity sold for each product category, grouped by month.
+- calculate_total_revenue: Calculate the total revenue for each store and 
+each product category.
+- calculate_monthly_sales: Calculate the total quantity sold for each 
+product category, grouped by month.
 - enrich_data: Combine the sales, products, and stores datasets into a single enriched dataset.
 - categorized_price: Categorize products based on price ranges.
 - add_price_category: Add a price category column to the enriched dataset.
 """
 
-from pyspark.sql import SparkSession, DataFrame
-from src.utils import load_config, get_logger
-from pyspark.sql.functions import col, sum, year, month, round, udf
+from pyspark.sql import DataFrame
+from pyspark.sql.functions import col, sum as pyspark_sum, year, month, round as pyspark_round, udf
 from pyspark.sql.types import StringType
+from src.utils import get_logger
 
 logger = get_logger(__name__)
-    
+
 def calculate_total_revenue(sales_df: DataFrame, products_df: DataFrame) -> DataFrame:
     """
     Calculate the total revenue for each store and each product category.
@@ -37,13 +39,13 @@ def calculate_total_revenue(sales_df: DataFrame, products_df: DataFrame) -> Data
         sales_with_category_df = sales_df.join(products_df, "product_id")
 
         total_revenue_df = sales_with_category_df.groupBy("store_id", "category").agg(
-            round(sum(col("price") * col("quantity")), 2).alias("total_revenue")
+            pyspark_round(pyspark_sum(col("price") * col("quantity")), 2).alias("total_revenue")
         ).orderBy("total_revenue", ascending=False)
         return total_revenue_df
     except Exception as e:
-        logger.error(f"Error calculating total revenue: {e}")
+        logger.error("Error calculating total revenue: %s", e)
         raise
-    
+
 def calculate_monthly_sales(sales_df: DataFrame, products_df: DataFrame) -> DataFrame:
     """
     Calculate the total quantity sold for each product category, grouped by month.
@@ -63,10 +65,14 @@ def calculate_monthly_sales(sales_df: DataFrame, products_df: DataFrame) -> Data
             year("transaction_date").alias("year"),
             month("transaction_date").alias("month"),
             "category"
-        ).agg(sum("quantity").alias("total_quantity_sold")).orderBy("total_quantity_sold", ascending=False)
+        ).agg(
+            pyspark_sum("quantity").alias("total_quantity_sold")
+        ).orderBy(
+            "total_quantity_sold", ascending=False
+        )
         return monthly_sales_df
     except Exception as e:
-        logger.error(f"Error calculating monthly sales: {e}")
+        logger.error("Error calculating monthly sales: %s", e)
         raise
 
 def enrich_data(sales_df: DataFrame, products_df: DataFrame, stores_df: DataFrame) -> DataFrame:
@@ -79,7 +85,8 @@ def enrich_data(sales_df: DataFrame, products_df: DataFrame, stores_df: DataFram
         stores_df (DataFrame): The stores DataFrame.
 
     Returns:
-        DataFrame: Enriched DataFrame with transaction_id, store_name, location, product_name, category, quantity, transaction_date, and price.
+        DataFrame: Enriched DataFrame with transaction_id, store_name, location, product_name, 
+        category, quantity, transaction_date, and price.
     """
     try:
         logger.info("Enriching data by combining sales, products, and stores datasets")
@@ -99,7 +106,7 @@ def enrich_data(sales_df: DataFrame, products_df: DataFrame, stores_df: DataFram
 
         return enriched_df
     except Exception as e:
-        logger.error(f"Error enriching data: {e}")
+        logger.error("Error enriching data: %s", e)
         raise
 
 def categorized_price(price: float) -> str:
@@ -115,12 +122,11 @@ def categorized_price(price: float) -> str:
     try:
         if price < 20:
             return "Low"
-        elif 20 <= price <= 100:
+        if 20 <= price <= 100:
             return "Medium"
-        else:
-            return "High"
+        return "High"
     except Exception as e:
-        logger.error(f"Error categorizing price: {e}")
+        logger.error("Error categorizing price: %s", e)
         raise
 
 categorized_price_udf = udf(categorized_price, StringType())
@@ -140,6 +146,5 @@ def add_price_category(enriched_df: DataFrame) -> DataFrame:
         enriched_df = enriched_df.withColumn("price_category", categorized_price_udf(col("price")))
         return enriched_df
     except Exception as e:
-        logger.error(f"Error adding price category: {e}")
+        logger.error("Error adding price category: %s", e)
         raise
-    

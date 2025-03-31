@@ -9,15 +9,15 @@ Functions:
 - load_data: Load data from the specified path in the configuration file.
 - check_missing_values: Check for missing values in the DataFrame.
 - check_format_inconsistencies: Check for inconsistencies in the data format.
-- handle_duplicates: Handle duplicates in the DataFrame by dropping rows with duplicate primary keys.
+- handle_duplicates: Handle duplicates in the DataFrame by dropping rows 
+with duplicate primary keys.
 - enforce_constraints: Enforce constraints for a specific column in the DataFrame.
 - enforce_data_types: Enforce data types and constraints for each column in the DataFrame.
 """
 
-from src.utils import get_logger
 from pyspark.sql import SparkSession, DataFrame
 from pyspark.sql.functions import col, when, count, length, to_date, coalesce
-from pyspark.sql.types import IntegerType
+from src.utils import get_logger
 
 logger = get_logger(__name__)
 
@@ -33,14 +33,14 @@ def load_data(spark: SparkSession, config: dict) -> DataFrame:
         DataFrame: The loaded DataFrame.
     """
     try:
-        logger.info(f"Loading data from {config['path']}")
+        logger.info("Loading data from %s", config['path'])
         df = spark.read.format(config['format']).option("header", "true").load(config['path'])
         return df
     except FileNotFoundError as e:
-        logger.error(f"Configuration file not found: {config['path']}")
+        logger.error("Configuration file not found: %s - %s", config['path'], e)
         raise
     except Exception as e:
-        logger.critical(f"Unexpected error loading data from {config['path']}: {e}")
+        logger.error("Unexpected error loading data from %s: %s", config['path'], e)
         raise
 
 def check_missing_values(df: DataFrame, config: dict) -> DataFrame:
@@ -55,12 +55,12 @@ def check_missing_values(df: DataFrame, config: dict) -> DataFrame:
         DataFrame: A DataFrame showing the count of missing values for each column.
     """
     try:
-        logger.info(f"Checking for missing values in table {config['table_name']}")
+        logger.info("Checking for missing values in table %s", config['table_name'])
         missing_values = df.select([count(when(col(c).isNull(), c)).alias(c) for c in df.columns])
-        logger.info(f"Missing values:\n{missing_values.collect()}")
+        logger.info("Missing values:\n%s", missing_values.collect())
         return missing_values
     except Exception as e:
-        logger.error(f"Error checking missing values in table {config['table_name']}: {e}")
+        logger.error("Error checking missing values in table %s: %s", config['table_name'], e)
         raise
 
 def check_format_inconsistencies(df: DataFrame, config: dict) -> DataFrame:
@@ -75,27 +75,37 @@ def check_format_inconsistencies(df: DataFrame, config: dict) -> DataFrame:
         DataFrame: A DataFrame showing the count of format inconsistencies for each column.
     """
     try:
-        logger.info(f"Checking for format inconsistencies in table {config['table_name']}")
+        logger.info("Checking for format inconsistencies in table %s", config['table_name'])
         format_inconsistencies = []
         for column, metadata in config['columns'].items():
             if metadata['type'] == 'string':
-                logger.info(f"Checking for empty strings in column {column}")
-                format_inconsistencies.append(count(when(length(col(column)) == 0, column)).alias(column))
+                logger.info("Checking for empty strings in column %s", column)
+                format_inconsistencies.append(
+                    count(when(length(col(column)) == 0, column)).alias(column)
+                )
             elif metadata['type'] == 'date':
-                logger.info(f"Checking for invalid dates in column {column}")
+                logger.info("Checking for invalid dates in column %s", column)
                 date_format = metadata['format']
-                format_inconsistencies.append(count(when(to_date(col(column), date_format).isNull(), column)).alias(column))
+                format_inconsistencies.append(
+                    count(when(to_date(col(column), date_format).isNull(), column)).alias(column))
             elif metadata['type'] == 'integer':
-                logger.info(f"Checking for invalid integers in column {column}")
-                format_inconsistencies.append(count(when(col(column).cast('integer').isNull(), column)).alias(column))
+                logger.info("Checking for invalid integers in column %s", column)
+                format_inconsistencies.append(
+                    count(when(col(column).cast('integer').isNull(), column)).alias(column)
+                )
             elif metadata['type'] == 'float':
-                logger.info(f"Checking for invalid floats in column {column}")
-                format_inconsistencies.append(count(when(col(column).cast('float').isNull(), column)).alias(column))
+                logger.info("Checking for invalid floats in column %s", column)
+                format_inconsistencies.append(
+                    count(when(col(column).cast('float').isNull(), column)).alias(column)
+                )
         inconsistencies_df = df.select(format_inconsistencies)
-        logger.info(f"Format inconsistencies:\n{inconsistencies_df.collect()}")
+        logger.info("Format inconsistencies:\n%s", inconsistencies_df.collect())
         return inconsistencies_df
     except Exception as e:
-        logger.error(f"Error checking format inconsistencies in table {config['table_name']}: {e}")
+        logger.error(
+            "Error checking format inconsistencies in table %s: %s", 
+            config['table_name'], e
+        )
         raise
 
 def handle_duplicates(df: DataFrame, config: dict) -> DataFrame:
@@ -110,15 +120,18 @@ def handle_duplicates(df: DataFrame, config: dict) -> DataFrame:
         DataFrame: The DataFrame with duplicates removed.
     """
     try:
-        logger.info(f"Handling duplicates in table {config['table_name']}")
+        logger.info("Handling duplicates in table %s", config['table_name'])
         initial_count = df.count()
         df = df.drop_duplicates(subset=config['primary_keys'])
         final_count = df.count()
         duplicates_dropped = initial_count - final_count
-        logger.info(f"Dropped {duplicates_dropped} duplicates rows from table {config['table_name']}")
+        logger.info(
+            "Dropped %d duplicate rows from table %s", 
+            duplicates_dropped, config['table_name']
+        )
         return df
     except Exception as e:
-        logger.error(f"Error handling duplicates in table {config['table_name']}: {e}")
+        logger.error("Error handling duplicates in table %s: %s", config['table_name'], e)
         raise
 
 def enforce_constraints(df: DataFrame, column: str, constraints: dict) -> DataFrame:
@@ -135,17 +148,17 @@ def enforce_constraints(df: DataFrame, column: str, constraints: dict) -> DataFr
     """
     try:
         if 'not_null' in constraints and constraints['not_null']:
-            logger.info(f"Enforcing not_null constraint on column {column}")
+            logger.info("Enforcing not_null constraint on column %s", column)
             df = df.filter(col(column).isNotNull())
         if 'not_empty' in constraints and constraints['not_empty']:
-            logger.info(f"Enforcing not_empty constraint on column {column}")
+            logger.info("Enforcing not_empty constraint on column %s", column)
             df = df.filter(col(column) != "")
         if 'min' in constraints:
-            logger.info(f"Enforcing min constraint on column {column}: {constraints['min']}")
+            logger.info("Enforcing min constraint on column %s: %s", column, constraints['min'])
             df = df.filter(col(column) >= constraints['min'])
         return df
     except Exception as e:
-        logger.error(f"Error enforcing constraints on column {column}: {e}")
+        logger.error("Error enforcing constraints on column %s: %s", column, e)
         raise
 
 # List of known date formats
@@ -170,15 +183,18 @@ def enforce_data_types(df: DataFrame, config: dict) -> DataFrame:
         DataFrame: The DataFrame with enforced data types and constraints.
     """
     try:
-        logger.info(f"Enforcing data types for table {config['table_name']}")
+        logger.info("Enforcing data types for table %s", config['table_name'])
         for column, metadata in config['columns'].items():
             data_type = metadata['type']
-            logger.info(f"Enforcing data type for column {column}: {data_type}")
+            logger.info("Enforcing data type for column %s: %s", column, data_type)
             if data_type == 'date':
-                logger.info(f"Detecting and converting date formats for column {column}")
+                logger.info("Detecting and converting date formats for column %s", column)
                 date_columns = [to_date(col(column), fmt) for fmt in KNOWN_DATE_FORMATS]
                 df = df.withColumn(column, coalesce(*date_columns))
-                logger.debug(f"Schema after enforcing data type for column {column}: {df.schema}")
+                logger.debug(
+                    "Schema after enforcing data type for column %s: %s", 
+                    column, df.schema
+                )
             else:
                 df = df.withColumn(column, col(column).cast(data_type))
 
@@ -186,5 +202,5 @@ def enforce_data_types(df: DataFrame, config: dict) -> DataFrame:
                 df = enforce_constraints(df, column, metadata['constraints'])
         return df
     except Exception as e:
-        logger.error(f"Error enforcing data types for table {config['table_name']}: {e}")
+        logger.error("Error enforcing data types for table %s: %s", config['table_name'], e)
         raise

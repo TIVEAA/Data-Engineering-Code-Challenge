@@ -14,7 +14,8 @@ This repository contains my solution for the data engineering challenge.
 │   ├── data_transformation.py
 │   ├── data_export.py
 |   ├── pipeline.py
-│   └── utils.py
+|   ├── utils.py
+│   └── README.md
 ├── tests/
 │   ├── __init__.py
 │   ├── test_data_preparation.py
@@ -26,14 +27,11 @@ This repository contains my solution for the data engineering challenge.
 │       └── ci.yml
 ├── logs/
 │   └── app.log
-├── docs/
-│   └── README.md
 ├── output/
 │   ├── enriched_data/
 │   └── revenue_insights/
 ├── .gitignore
 ├── requirements.txt
-├── setup.py
 └── main.py
 ```
 

@@ -24,17 +24,17 @@ def load_config(config_path: str) -> Dict:
         dict: Configuration dictionary.
     """
     try:
-        with open(config_path, 'r') as config_file:
+        with open(config_path, 'r', encoding='utf-8') as config_file:
             config = json.load(config_file)
         return config
     except FileNotFoundError as e:
-        logging.error(f"Configuration file not found: {config_path}")
+        logging.error("Configuration file not found: %s - %s", config_path, e)
         raise
     except json.JSONDecodeError as e:
-        logging.error(f"Error decoding JSON from configuration file: {config_path}")
+        logging.error("Error decoding JSON from configuration file: %s - %s", config_path, e)
         raise
     except Exception as e:
-        logging.error(f"Unexpected error loading configuration file: {config_path} - {e}")
+        logging.error("Unexpected error loading configuration file: %s - %s", config_path, e)
         raise
 
 def get_logger(name: str) -> logging.Logger:
@@ -50,19 +50,19 @@ def get_logger(name: str) -> logging.Logger:
     try:
         logger = logging.getLogger(name)
         logger.setLevel(logging.DEBUG)
-        
+
         # Create a file handler
         handler = logging.FileHandler('logs/app.log')
         handler.setLevel(logging.DEBUG)
-        
+
         # Create a logging format
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         handler.setFormatter(formatter)
-        
+
         # Add the handlers to the logger
         logger.addHandler(handler)
-        
+
         return logger
     except Exception as e:
-        logging.error(f"Error setting up logger: {name} - {e}")
+        logging.error("Error setting up logger: %s - %s", name, e)
         raise
