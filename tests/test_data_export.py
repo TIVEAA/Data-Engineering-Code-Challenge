@@ -25,6 +25,15 @@ def clean_output_folder():
     if os.path.exists(test_output_path):
         shutil.rmtree(test_output_path)
 
+@pytest.fixture(scope="function", autouse=True)
+def create_log_file():
+    log_file_path = "logs/app.log"
+    if not os.path.exists(log_file_path):
+        os.makedirs(os.path.dirname(log_file_path), exist_ok=True)
+        with open(log_file_path, 'w') as f:
+            pass
+    yield
+
 def test_save_enriched_data(spark: SparkSession):
     enriched_data = [("1", "Store1", "Location1", "Product1", "Category1", 2, "2024-07-04", 10.0)]
     enriched_df = spark.createDataFrame(enriched_data, ["transaction_id", "store_name", "location", "product_name", "category", "quantity", "transaction_date", "price"])
