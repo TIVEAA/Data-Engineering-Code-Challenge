@@ -1,3 +1,9 @@
 # Ignore logs
 logs/
 *.log
+
+# Virtual environments
+venv/
+env/
+*.venv
+*.env
