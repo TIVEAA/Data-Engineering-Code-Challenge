@@ -39,5 +39,5 @@ def process_table(spark: SparkSession, config: dict, table_name: str):
         
         return df
     except Exception as e:
-        logger.error(f"Error processing table {table_name}: {e}")
+        logger.error("Error processing table %s: %s", table_name, e)
         raise

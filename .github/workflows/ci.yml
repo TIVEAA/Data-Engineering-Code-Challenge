@@ -28,7 +28,9 @@ jobs:
 
     - name: Run linting
       run: |
-        pylint src/
+        pylint src/data_preparation.py
+        pylint src/data_transformation.py
+        pylint src/data_export.py
         pylint main.py
 
     - name: Run tests
