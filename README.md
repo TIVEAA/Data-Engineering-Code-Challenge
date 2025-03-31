@@ -68,5 +68,5 @@ Logs are stored in the logs/app.log file. The logging configuration is set up in
 The project includes a GitHub Actions workflow for continuous integration. The workflow is defined in .github/workflows/ci.yml.
 
 ## Documentation
-Detailed documentation for each module can be found in the docs/README.md file.
+Detailed documentation for each module can be found in the paths: src/README.md, config/README.md and tests/README.md.
 

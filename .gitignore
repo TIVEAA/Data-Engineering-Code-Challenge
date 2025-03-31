@@ -7,3 +7,10 @@ venv/
 env/
 *.venv
 *.env
+
+# Ignore Python bytecode
+__pycache__/
+*.py[cod]
+
+# Ignore Pytest cache
+.pytest_cache/
